@@ -21,9 +21,7 @@ export const slides = [
     },
 ];
 
-interface Slider3DProps {}
-
-const Slider3D = ({}: Slider3DProps) => {
+const Slider3D = () => {
     const containerRef = useRef<HTMLDivElement>(null);
     const {width = 0, height = 0} = useResizeObserver({
         // @ts-expect-error should have initial value
