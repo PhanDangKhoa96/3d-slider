@@ -1,9 +1,15 @@
-import localFont from "next/font/local";
+import {Oswald, Quattrocento} from "next/font/google";
 
-const geistVF = localFont({
-    src: "../public/fonts/GeistVF.woff",
-    variable: "--font-geistVF",
+const oswald = Oswald({
+    variable: "--font-oswald",
     display: "swap",
+    weight: ["300", "400", "500", "700"],
 });
 
-export {geistVF};
+const quattrocento = Quattrocento({
+    variable: "--font-quattrocento",
+    display: "swap",
+    weight: ["400", "700"],
+});
+
+export {oswald, quattrocento};

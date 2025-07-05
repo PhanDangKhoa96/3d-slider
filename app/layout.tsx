@@ -3,7 +3,7 @@ import "./globals.css";
 import {LenisProvider} from "@/providers/LenisProvider";
 import {GsapProvider} from "@/providers/GsapProvider";
 import {cn} from "@/lib/utilities/cn";
-import {geistVF} from "@/lib/fonts";
+import {oswald, quattrocento} from "@/lib/fonts";
 
 export const metadata: Metadata = {
     title: "Khoa Phan Playground",
@@ -17,7 +17,12 @@ export default function RootLayout({
 }>) {
     return (
         <html lang="en">
-            <body className={cn("antialiased", geistVF.variable)}>
+            <body
+                className={cn(
+                    "font-quattrocento antialiased",
+                    oswald.variable,
+                    quattrocento.variable
+                )}>
                 <LenisProvider>{children}</LenisProvider>
                 <GsapProvider scrollTrigger />
             </body>

@@ -8,6 +8,7 @@ import {useWindowSize} from "usehooks-ts";
 interface Slider3DContextType {
     isTransitioning: React.RefObject<boolean>;
     currentSlideIndex: React.RefObject<number>;
+    lastSlideIndex: React.RefObject<number | null>;
     slideTextures: THREE.Texture[];
     shaderMaterial: THREE.ShaderMaterial;
     handleSlideChange: (targetIndex?: number) => void;
@@ -28,6 +29,7 @@ export function Slider3DProvider({
 }) {
     const isTransitioning = useRef<boolean>(false);
     const currentSlideIndex = useRef<number>(0);
+    const lastSlideIndex = useRef<number | null>(null);
     const {height: windowHeight, width: windowWidth} = useWindowSize();
     const width = containerSize?.width ?? windowWidth;
     const height = containerSize?.height ?? windowHeight;
@@ -78,7 +80,8 @@ export function Slider3DProvider({
         const nextIndex =
             targetIndex ??
             (currentSlideIndex.current + 1) % slideTextures.length;
-
+        const lastIndex = currentSlideIndex.current;
+        lastSlideIndex.current = lastIndex;
         shaderMaterial.uniforms.uTexture1.value =
             slideTextures[currentSlideIndex.current];
         shaderMaterial.uniforms.uTexture2.value = slideTextures[nextIndex];
@@ -103,6 +106,7 @@ export function Slider3DProvider({
             .call(
                 () => {
                     isTransitioning.current = false;
+
                     currentSlideIndex.current = nextIndex;
 
                     shaderMaterial.uniforms.uProgress.value = 0;
@@ -119,6 +123,7 @@ export function Slider3DProvider({
     const value = {
         isTransitioning,
         currentSlideIndex,
+        lastSlideIndex,
         slideTextures,
         handleSlideChange,
         shaderMaterial,
