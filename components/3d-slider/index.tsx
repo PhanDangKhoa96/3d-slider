@@ -1,12 +1,12 @@
 "use client";
-import {OrthographicCamera} from "@react-three/drei";
-import {Canvas} from "@react-three/fiber";
-import {Slider3DProvider, useSlider3DContext} from "./context";
+import { OrthographicCamera } from "@react-three/drei";
+import { Canvas } from "@react-three/fiber";
+import { Slider3DProvider, useSlider3DContext } from "./context";
 import Pagination from "./pagination";
-import {useEffect, useRef, useState} from "react";
-import {useIsClient, useResizeObserver} from "usehooks-ts";
-import {Content} from "./content";
-import {Credit} from "./credit";
+import { RefObject, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useIsClient, useResizeObserver } from "usehooks-ts";
+import { Content } from "./content";
+import { Credit } from "./credit";
 
 export interface Slide {
     image: string;
@@ -56,38 +56,56 @@ export const slides: Slide[] = [
     },
 ];
 
-const Slider3D = () => {
-    const containerRef = useRef<HTMLDivElement>(null);
-    const contentRefs = useRef<(HTMLDivElement | null)[]>([]);
+// Memoized slides to prevent unnecessary re-renders
+const memoizedSlides = slides;
 
-    const {width = 0, height = 0} = useResizeObserver({
-        // @ts-expect-error should have initial value
-        ref: containerRef,
+const Slider3D = () => {
+    const containerRef = useRef<HTMLDivElement | null>(null);
+    const contentRefs = useRef<(HTMLDivElement | null)[]>([]);
+    const resizeTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+    const { width = 0, height = 0 } = useResizeObserver({
+        ref: containerRef as RefObject<HTMLElement>,
         box: "border-box",
     });
+
     const isClient = useIsClient();
     const [isResizing, setIsResizing] = useState(false);
 
+    // Memoize container size to prevent unnecessary re-renders
+    const containerSize = useMemo(() => ({ width, height }), [width, height]);
+
+    // Optimized resize handler with proper cleanup
+    const handleResize = useCallback(() => {
+        setIsResizing(true);
+
+        // Clear existing timeout
+        if (resizeTimeoutRef.current) {
+            clearTimeout(resizeTimeoutRef.current);
+        }
+
+        // Debounce resize detection
+        resizeTimeoutRef.current = setTimeout(() => {
+            setIsResizing(false);
+        }, 100); // Increased debounce time for better performance
+    }, []);
+
     useEffect(() => {
-        let resizeTimer: NodeJS.Timeout;
-
-        const handleResize = () => {
-            setIsResizing(true);
-
-            // Debounce to detect when resizing stops
-            clearTimeout(resizeTimer);
-            resizeTimer = setTimeout(() => {
-                setIsResizing(false);
-            }, 50);
-        };
-
-        window.addEventListener("resize", handleResize);
+        window.addEventListener("resize", handleResize, { passive: true });
 
         return () => {
             window.removeEventListener("resize", handleResize);
-            clearTimeout(resizeTimer);
+            if (resizeTimeoutRef.current) {
+                clearTimeout(resizeTimeoutRef.current);
+            }
         };
-    }, []);
+    }, [handleResize]);
+
+    // Memoize the provider value to prevent unnecessary re-renders
+    const providerValue = useMemo(() => ({
+        slides: memoizedSlides,
+        containerSize
+    }), [containerSize]);
 
     return (
         <div
@@ -95,11 +113,17 @@ const Slider3D = () => {
             className="relative size-full"
             ref={containerRef}>
             {isClient && (
-                <Slider3DProvider
-                    slides={slides}
-                    containerSize={{width, height}}>
+                <Slider3DProvider {...providerValue}>
                     {!isResizing && (
-                        <Canvas className="brightness-80">
+                        <Canvas
+                            className="brightness-80"
+                            gl={{
+                                antialias: true,
+                                powerPreference: "high-performance",
+                                stencil: false,
+                                depth: false
+                            }}
+                        >
                             <OrthographicCamera
                                 makeDefault
                                 left={-1}
@@ -112,10 +136,10 @@ const Slider3D = () => {
                             <ShaderPlane />
                         </Canvas>
                     )}
-                    <Content contentRefs={contentRefs} slides={slides} />
+                    <Content contentRefs={contentRefs} slides={memoizedSlides} />
                     <Pagination
                         containerRef={containerRef}
-                        slides={slides}
+                        slides={memoizedSlides}
                         contentRefs={contentRefs}
                     />
                     <Credit />
@@ -125,8 +149,9 @@ const Slider3D = () => {
     );
 };
 
-function ShaderPlane({}) {
-    const {shaderMaterial} = useSlider3DContext();
+// Memoized shader plane component
+const ShaderPlane = () => {
+    const { shaderMaterial } = useSlider3DContext();
 
     return (
         <mesh>
@@ -134,6 +159,6 @@ function ShaderPlane({}) {
             <primitive object={shaderMaterial} attach="material" />
         </mesh>
     );
-}
+};
 
-export {Slider3D};
+export { Slider3D };
